@@ -1,0 +1,4 @@
+.vagrant/
+.build_release/
+.DS_Store
+release/
