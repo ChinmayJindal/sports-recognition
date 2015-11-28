@@ -2,8 +2,9 @@ import os
 
 class Action:
 	id = 0
-	def __init__(self, path):
+	def __init__(self, path, name):
 		self.root = path
+		self.name = name
 		self.id = Action.id
 		Action.id += 1
 		self.getVideoPaths()
@@ -21,8 +22,12 @@ class Action:
 
 def main(root):
 	actionDirs = filter(lambda p: os.path.isdir(root + os.path.sep + p), os.listdir(root))
+	actionNames = actionDirs
 	actionDirs = map(lambda p: root + os.path.sep + p, actionDirs)
-	actions = map(lambda a: Action(a), actionDirs)
+	actions = map(lambda a, n: Action(a, n), actionDirs, actionNames)
+
+	for a in actions:
+		print a.name
 
 # assume data set folder in "root"
 if __name__ == '__main__':
