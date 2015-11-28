@@ -2,3 +2,6 @@
 .build_release/
 .DS_Store
 release/
+
+# ignore dataset folder
+UCFSports/
