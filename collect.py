@@ -1,4 +1,5 @@
 import os
+import Util
 
 class Action:
 	id = 0
@@ -26,8 +27,14 @@ def main(root):
 	actionDirs = map(lambda p: root + os.path.sep + p, actionDirs)
 	actions = map(lambda a, n: Action(a, n), actionDirs, actionNames)
 
-	for a in actions:
-		print a.name
+	# getting dense trajectory features
+	for action in actions:
+		for video in action.videos:
+			Util.dumpDTF(video)
+
+	# making the codebook
+	
+
 
 # assume data set folder in "root"
 if __name__ == '__main__':
