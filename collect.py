@@ -33,9 +33,9 @@ def main(root):
 
 	# getting dense trajectory features
 	print 'Getting dense trajectory features'
-	for action in actions[:1]:
+	for action in actions[:2]:
 		print '=> ' + action.name + ':'
-		for video in action.videos[:1]:
+		for video in action.videos[:2]:
 			print video,
 			start = time.time()
 			Util.dumpDTF(video)
@@ -48,8 +48,8 @@ def main(root):
 	featuresCombined = np.empty([0,426], dtype=np.float32)
 
 	tags = []
-	for action in actions[:1]:
-		for video in action.videos[:1]:
+	for action in actions[:2]:
+		for video in action.videos[:2]:
 			featurePath = os.path.splitext(video)[0] + '_features.txt'
 
 			start = featuresCombined.shape[0]
@@ -65,7 +65,7 @@ def main(root):
 			tags.append((start, end, action.id))
 
 	# performing k means
-	k = 4000
+	k = 20
 	attempts = 5
 	print 'Generating ' + str(k) + ' clusters'
 	compactness, labels, centers = cv2.kmeans(featuresCombined, k, criteria=(cv2.TERM_CRITERIA_EPS+cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0), attempts=attempts, flags=cv2.KMEANS_RANDOM_CENTERS)
@@ -74,7 +74,7 @@ def main(root):
 	trainData = np.empty([0, k], dtype=np.float32)
 	trainLabels = []
 	for t in tags:
-		hist = np.histogram(labels[t[0]:t[1]], k)
+		hist, bin_edges = np.histogram(labels[t[0]:t[1]], k)
 		trainData = np.vstack((trainData, hist))
 		trainLabels.append(t[2])
 
@@ -85,7 +85,7 @@ def main(root):
 	K = chi2_kernel(trainData, gamma=.5)
 	# create n one-vs-all classifiers
 	models = []
-	for actions in actions:
+	for action in actions:
 		y = np.zeros(trainLabels.shape)
 		y[y == action.id] = 1
 		svm = SVC(kernel='precomputed').fit(K, y)
