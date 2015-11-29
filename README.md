@@ -1,13 +1,16 @@
 # Sports Recognition in Videos
 
-This repository builds a classifier to predict the sport being played. It works
-on the UCF Sports dataset and builds a multi-class classifier based on SVM using
-chi-squared kernel.
+This repository builds a classifier to predict the sport being played using Dense Trajectory Features. It works
+on the UCF Sports dataset and builds a multi-class classifier based on SVM using chi-squared kernel. The paper behind the project is:
+
+[Heng Wang, Alexander Kläser, Cordelia Schmid, Liu Cheng-Lin. Action Recognition by Dense Trajectories. CVPR 2011 - IEEE Conference on Computer Vision & Pattern Recognition, Jun 2011](https://hal.inria.fr/inria-00583818)
 
 ### Prerequisites
 * [The UCF Sports Dataset](http://crcv.ucf.edu/data/UCF_Sports_Action.php), a
-stripped down version (with no image dumps) can be found [here](https://www.dropbox.com/sh/e3r7jonuprxiqhn/AAD9wRI3lfqOrrYN8aY4yXMDa?dl=0)
-* [Dense Trajectory Features](https://lear.inrialpes.fr/people/wang/dense_trajectories), this code has been included in `dense_trajectory_release_v1.2` folder
+stripped down version (with no image dumps) can be found
+[here](https://www.dropbox.com/sh/e3r7jonuprxiqhn/AAD9wRI3lfqOrrYN8aY4yXMDa?dl=0)
+* [Dense Trajectory Features](https://lear.inrialpes.fr/people/wang/dense_trajectories),
+this code has been included in `dense_trajectory_release_v1.2` folder
 
 ### Project Setup
 Run `setup.sh` to install all dependencies. It also builds a `DenseTrack` executable
@@ -41,3 +44,7 @@ split ratio of 0.3. Following classes have been used from the UCF Sports Dataset
 * Swing-Bench (20 videos)
 * Swing-SideAngle (13 videos)
 * Walk-Front (22 videos)
+
+### Contact
+The repository has been made available at
+[https://github.com/ChinmayJindal/sports-recognition](https://github.com/ChinmayJindal/sports-recognition)
