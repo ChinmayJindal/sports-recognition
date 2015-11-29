@@ -43,6 +43,8 @@ split ratio of 0.3. Following classes have been used from the UCF Sports Dataset
 * Swing-SideAngle (13 videos)
 * Walk-Front (22 videos)
 
+After preliminary evaluation, we achieved a result of around 29%.
+
 ### Contact
 The repository has been made available at
 [https://github.com/ChinmayJindal/sports-recognition](https://github.com/ChinmayJindal/sports-recognition)
