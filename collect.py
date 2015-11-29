@@ -1,9 +1,11 @@
 import os, time
+import pickle
 import Util
 import numpy as np
 from sklearn.svm import LinearSVC
 from sklearn.metrics.pairwise import chi2_kernel
 from sklearn.multiclass import OneVsRestClassifier
+from sklearn import cross_validation
 import cv2
 
 class Action:
@@ -26,6 +28,12 @@ class Action:
 			video = video[0]
 			self.videos.append(v + os.path.sep + video)
 
+#
+# Parameters:
+# test_size, split ratio of train and test
+# k, for k-means clustering
+# attempts, number of attempts for k-means
+#
 def main(root):
 	actionDirs = filter(lambda p: os.path.isdir(root + os.path.sep + p), os.listdir(root))
 	actionNames = actionDirs
@@ -46,9 +54,9 @@ def main(root):
 
 	# making the codebook
 	print 'Collecting all features for codebook generation'
-	featuresCombined = np.empty([0,426], dtype=np.float32)
+	featuresCombined = np.empty([0, 426], dtype=np.float32)
+	labelsCombined = []
 
-	tags = []
 	for action in actions[:2]:
 		for video in action.videos[:2]:
 			featurePath = os.path.splitext(video)[0] + '_features.txt'
@@ -63,13 +71,17 @@ def main(root):
 					featuresCombined = np.vstack((featuresCombined, feature))
 			end = featuresCombined.shape[0]
 
-			tags.append((start, end, action.id))
+			labelsCombined.append(action.id)
+
+	# do a test train split
+	test_size = 0.3
+	X_train, X_test, y_train, y_test = cross_validation.train_test_split(featuresCombined, labelsCombined, test_size=test_size, random_state=0)
 
 	# performing k means
 	k = 20
 	attempts = 5
 	print 'Generating ' + str(k) + ' clusters'
-	compactness, labels, centers = cv2.kmeans(featuresCombined, k, criteria=(cv2.TERM_CRITERIA_EPS+cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0), attempts=attempts, flags=cv2.KMEANS_RANDOM_CENTERS)
+	compactness, labels, centers = cv2.kmeans(X_train, k, criteria=(cv2.TERM_CRITERIA_EPS+cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0), attempts=attempts, flags=cv2.KMEANS_RANDOM_CENTERS)
 
 	print 'Generating bag-of-words for each video'
 	trainData = np.empty([0, k], dtype=np.float32)
@@ -77,7 +89,6 @@ def main(root):
 	for t in tags:
 		hist, bin_edges = np.histogram(labels[t[0]:t[1]], k)
 		trainData = np.vstack((trainData, hist))
-		trainLabels.append(t[2])
 
 	trainLabels = np.array(trainLabels)
 
@@ -85,6 +96,8 @@ def main(root):
 	# apply kernel on all data
 	K = chi2_kernel(trainData, gamma=.5)
 	model = OneVsRestClassifier(LinearSVC(random_state=0)).fit(K, trainLabels)
+	pickle.dump(model, open('model.p', 'w'))
+	pickle.dump(centers, open('centers.p', 'w'))
 
 # assume data set folder in "root"
 if __name__ == '__main__':
