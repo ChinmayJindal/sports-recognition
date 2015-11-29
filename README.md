@@ -35,8 +35,6 @@ in `centers.p`.
 The code has been evaluated on accuracy of predictions after the test and train
 split ratio of 0.3. Following classes have been used from the UCF Sports Dataset:
 * Diving-Side (7 videos)
-* Golf-Swing-Back (5 videos)
-* Golf-Swing-Side (5 videos)
 * Kicking-Front (10 videos)
 * Riding-Horse (12 videos)
 * Run-Side (13 videos)
