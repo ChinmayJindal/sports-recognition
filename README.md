@@ -23,6 +23,19 @@ histogram built using the above clustering
 * All the bag-of-visual-words are fed into the SVM using chi-squared kernel
 and classified using a One-Vs-Rest Classifier
 
+### Execution
+To run the code, run `Driver.py` which generates the One-Vs-Rest Classifier and dumps in a `model.p` file and along with the codebook centers for bag-of-visual-words in `centers.p`.
+
 ### Evaluation
 The code has been evaluated on accuracy of predictions after the test and train
-split ratio of 0.3.
+split ratio of 0.3. Following classes have been used from the UCF Sports Dataset:
+* Diving-Side (7 videos)
+* Golf-Swing-Back (5 videos)
+* Golf-Swing-Side (5 videos)
+* Kicking-Front (10 videos)
+* Riding-Horse (12 videos)
+* Run-Side (13 videos)
+* SkateBoarding-Front (12 videos)
+* Swing-Bench (20 videos)
+* Swing-SideAngle (13 videos)
+* Walk-Front (22 videos)
