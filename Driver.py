@@ -11,6 +11,11 @@ import cv2
 from random import shuffle
 import math
 
+# Parameters:
+# src - path to the video file
+# label - action type in the video
+# Stores dense trajectory features for the video and loads them into RAM
+#
 class Video:
 	def __init__(self, src, label):
 		self.src = src
@@ -33,6 +38,7 @@ class Video:
 				feature = np.array(rawFeature, dtype=np.float32)
 				self.features = np.vstack((self.features, feature))
 
+	# generate bag of words given centers of visual words
 	def generateBOW(self, clusterCenters):
 		tree = KDTree(clusterCenters)
 		indexMatch = []
@@ -44,6 +50,11 @@ class Video:
 		hist, bin_edges = np.histogram(indexMatch, clusterCenters.shape[0])
 		return hist
 
+# Parameters:
+# path - path where videos of a action are located
+# name - name of the action
+# Stores dense trajectory features for the video and loads them into RAM
+#
 class Action:
 	id = 0
 	def __init__(self, path, name):
@@ -56,6 +67,7 @@ class Action:
 		self.getVideoPaths()
 		self.traintestSplit()
 
+	# explore the action directory and get paths of all the video files
 	def getVideoPaths(self):
 		videoDirs = filter(lambda p: os.path.isdir(self.root + os.path.sep + p), os.listdir(self.root))
 		videoDirs = map(lambda p: self.root + os.path.sep + p, videoDirs)
@@ -68,6 +80,7 @@ class Action:
 			video = video[0]
 			self.videos.append(Video(src=v+os.path.sep+video, label=self.id))
 
+	# split all the videos for this action into train/test set.
 	def traintestSplit(self):
 		shuffle(self.videos)
 		numTrain = int(math.ceil(0.3*len(self.videos)))
@@ -87,7 +100,7 @@ def main(root):
 	actions = map(lambda a, n: Action(a, n), actionDirs, actionNames)
 
 	print 'Collecting cluster features'
-	# collect data for generating clusters
+	# collect all features for generating codebook.
 	clusterFeatures = np.empty([0,426], dtype=np.float32)
 	tags = []
 	for action in actions:
@@ -98,7 +111,7 @@ def main(root):
 			end = clusterFeatures.shape[1]
 			tags.append((start, end, action.id))
 
-	# performing k means
+	# performing k means clustering for creating dictionary of visual words
 	k = 20
 	attempts = 5
 	print 'Generating ' + str(k) + ' clusters'
@@ -114,14 +127,18 @@ def main(root):
 		trainData = np.vstack((trainData, hist))
 		trainLabels.append(t[2])
 	trainLabels = np.array(trainLabels)
-
+ 
+	# using one v/s all svm classifier
 	print 'Training SVM model with chi-squared kernel'
 	model = OneVsRestClassifier(SVC(kernel=chi2_kernel, random_state=0, class_weight='auto')).fit(trainData, trainLabels)
 	pickle.dump(model, open('model.p', 'w'))
 	pickle.dump(centers, open('centers.p', 'w'))
 
 
-	######## testing #######
+	#
+	#	Testing:
+	#		Generate dense trajectory features for every input test video and then get bag of words.
+	#		use trained svm for predicting the output
 	testData = np.empty([0,k], dtype=np.float32)
 	testLabels = []
 	for action in actions:
@@ -131,6 +148,7 @@ def main(root):
 			testLabels.append(action.id)
 	testLabels = np.array(testLabels)
 
+	# predicted labels compared with the true labels to get the classification accuracy
 	predictedLabels = model.predict(testData)	
 
 	print "accuracy: " + str(float(np.sum(np.array(testLabels)==np.array(predictedLabels)))/predictedLabels.shape[0])
