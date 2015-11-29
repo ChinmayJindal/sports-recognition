@@ -1,8 +1,9 @@
 import os, time
 import Util
 import numpy as np
-from sklearn.svm import SVC
+from sklearn.svm import LinearSVC
 from sklearn.metrics.pairwise import chi2_kernel
+from sklearn.multiclass import OneVsRestClassifier
 import cv2
 
 class Action:
@@ -83,13 +84,7 @@ def main(root):
 	print 'Training SVM model with chi-squared kernel'
 	# apply kernel on all data
 	K = chi2_kernel(trainData, gamma=.5)
-	# create n one-vs-all classifiers
-	models = []
-	for action in actions:
-		y = np.zeros(trainLabels.shape)
-		y[y == action.id] = 1
-		svm = SVC(kernel='precomputed').fit(K, y)
-		models.append(svm)
+	model = OneVsRestClassifier(LinearSVC(random_state=0)).fit(K, trainLabels)
 
 # assume data set folder in "root"
 if __name__ == '__main__':
