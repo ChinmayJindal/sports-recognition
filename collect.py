@@ -3,6 +3,7 @@ import Util
 import numpy as np
 from sklearn.svm import SVC
 from sklearn.metrics.pairwise import chi2_kernel
+import cv2
 
 class Action:
 	id = 0
@@ -65,7 +66,7 @@ def main(root):
 
 	# performing k means
 	k = 4000
-	attempts = 1
+	attempts = 5
 	print 'Generating ' + str(k) + ' clusters'
 	compactness, labels, centers = cv2.kmeans(featuresCombined, k, criteria=(cv2.TERM_CRITERIA_EPS+cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0), attempts=attempts, flags=cv2.KMEANS_RANDOM_CENTERS)
 
