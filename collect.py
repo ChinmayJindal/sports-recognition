@@ -5,8 +5,44 @@ import numpy as np
 from sklearn.svm import LinearSVC
 from sklearn.metrics.pairwise import chi2_kernel
 from sklearn.multiclass import OneVsRestClassifier
+from sklearn.neighbors import KDTree
 from sklearn import cross_validation
 import cv2
+from random import shuffle
+import math
+
+class Video:
+	def __init__(self, src, label):
+		self.src = src
+		self.label = label
+		self.featurePath = os.path.splitext(src)[0] + '_features.txt'
+
+		# dump features if not present
+		if not os.path.exists(self.featurePath):
+			Util.dumpDTF(self.src)
+
+		self.loadFeatures()
+
+	# load features into the memory
+	def loadFeatures(self):
+		self.features = np.empty([0, 426], dtype=np.float32)
+		with open(self.featurePath) as f:
+			for line in f:
+				# consists of HOG, HOF and MBH
+				rawFeature = [float(d) for d in line.split('\t')[10:-1]]
+				feature = np.array(rawFeature, dtype=np.float32)
+				self.features = np.vstack((self.features, feature))
+
+	def generateBOW(self, clusterCenters):
+		tree = KDTree(clusterCenters)
+		indexMatch = []
+
+		for f in self.features:
+			dist, index = tree.query(f, k=1)
+			indexMatch.append(index)
+
+		hist, bin_edges = np.histogram(indexMatch, clusterCenters.shape[0])
+		return hist
 
 class Action:
 	id = 0
@@ -16,6 +52,7 @@ class Action:
 		self.id = Action.id
 		Action.id += 1
 		self.getVideoPaths()
+		self.traintestSplit()
 
 	def getVideoPaths(self):
 		videoDirs = filter(lambda p: os.path.isdir(self.root + os.path.sep + p), os.listdir(self.root))
@@ -26,7 +63,14 @@ class Action:
 			if len(video) < 1:
 				continue
 			video = video[0]
-			self.videos.append(v + os.path.sep + video)
+			self.videos.append(Video(src=v+os.path.sep+video, label=self.id))
+
+	def traintestSplit(self):
+		shuffle(self.videos)
+		numTrain = math.ceil(0.3*len(self.videos))
+		self.traindata = self.videos[:numTrain+1]
+		self.testdata = self.videos[numTrain+1:]
+
 
 #
 # Parameters:
@@ -40,57 +84,33 @@ def main(root):
 	actionDirs = map(lambda p: root + os.path.sep + p, actionDirs)
 	actions = map(lambda a, n: Action(a, n), actionDirs, actionNames)
 
-	# getting dense trajectory features
-	print 'Getting dense trajectory features'
-	for action in actions[:2]:
-		print '=> ' + action.name + ':'
-		for video in action.videos[:2]:
-			print video,
-			start = time.time()
-			Util.dumpDTF(video)
-			end = time.time()
-			print '(' + str(end - start) + 's)'
-		print
-
-	# making the codebook
-	print 'Collecting all features for codebook generation'
-	featuresCombined = np.empty([0, 426], dtype=np.float32)
-	labelsCombined = []
-
-	for action in actions[:2]:
-		for video in action.videos[:2]:
-			featurePath = os.path.splitext(video)[0] + '_features.txt'
-
-			start = featuresCombined.shape[0]
-			with open(featurePath) as f:
-				for line in f:
-					# consists of HOG, HOF and MBH
-					rawFeature = [float(d) for d in line.split('\t')[10:-1]]
-					feature = np.array(rawFeature, dtype=np.float32)
-
-					featuresCombined = np.vstack((featuresCombined, feature))
-			end = featuresCombined.shape[0]
-
-			labelsCombined.append(action.id)
-
-	# do a test train split
-	test_size = 0.3
-	X_train, X_test, y_train, y_test = cross_validation.train_test_split(featuresCombined, labelsCombined, test_size=test_size, random_state=0)
+	# collect data for generating clusters
+	clusterFeatures = np.empty([0,426], dtype=np.float32)
+	tags = []
+	for action in actions:
+		for video in action.traindata:
+			start = clusterFeatures.shape[0]
+			clusterFeatures = np.vstack((clusterFeatures, video.features))
+			end = clusterFeatures.shape[1]
+			tags.append((start, end, action.id))
 
 	# performing k means
 	k = 20
 	attempts = 5
 	print 'Generating ' + str(k) + ' clusters'
-	compactness, labels, centers = cv2.kmeans(X_train, k, criteria=(cv2.TERM_CRITERIA_EPS+cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0), attempts=attempts, flags=cv2.KMEANS_RANDOM_CENTERS)
+	compactness, labels, centers = cv2.kmeans(clusterFeatures, k, criteria=(cv2.TERM_CRITERIA_EPS+cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0), attempts=attempts, flags=cv2.KMEANS_RANDOM_CENTERS)
 
+
+	# generating data and labels for svm training
 	print 'Generating bag-of-words for each video'
 	trainData = np.empty([0, k], dtype=np.float32)
 	trainLabels = []
 	for t in tags:
 		hist, bin_edges = np.histogram(labels[t[0]:t[1]], k)
 		trainData = np.vstack((trainData, hist))
-
+		trainLabels.append(t[2])
 	trainLabels = np.array(trainLabels)
+
 
 	print 'Training SVM model with chi-squared kernel'
 	# apply kernel on all data
@@ -98,6 +118,23 @@ def main(root):
 	model = OneVsRestClassifier(LinearSVC(random_state=0)).fit(K, trainLabels)
 	pickle.dump(model, open('model.p', 'w'))
 	pickle.dump(centers, open('centers.p', 'w'))
+
+
+	######## testing #######
+	testData = np.empty([0,k], dtype=np.float32)
+	testLabels = []
+	for action in actions:
+		for video in action.testdata:
+			hist = video.generateBOW(centers)
+			testData = np.vstack((testData, hist))
+			testLabels.append(action.id)
+	testLabels = np.array(testLabels)
+
+	K = chi2_kernel(testData, gamma=.5)
+	predictedLabels = model.predict(K)	
+
+	print "accuracy: " + str(float(np.sum(np.array(testLabels)==np.array(predictedLabels)))/predictedLabels.shape[0])
+
 
 # assume data set folder in "root"
 if __name__ == '__main__':
