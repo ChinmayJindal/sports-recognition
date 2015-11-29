@@ -112,8 +112,8 @@ def main(root):
 			tags.append((start, end, action.id))
 
 	# performing k means clustering for creating dictionary of visual words
-	k = 20
-	attempts = 5
+	k = 4000
+	attempts = 10
 	print 'Generating ' + str(k) + ' clusters'
 	compactness, labels, centers = cv2.kmeans(clusterFeatures, k, criteria=(cv2.TERM_CRITERIA_EPS+cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0), attempts=attempts, flags=cv2.KMEANS_RANDOM_CENTERS)
 
@@ -127,7 +127,7 @@ def main(root):
 		trainData = np.vstack((trainData, hist))
 		trainLabels.append(t[2])
 	trainLabels = np.array(trainLabels)
- 
+
 	# using one v/s all svm classifier
 	print 'Training SVM model with chi-squared kernel'
 	model = OneVsRestClassifier(SVC(kernel=chi2_kernel, random_state=0, class_weight='auto')).fit(trainData, trainLabels)
@@ -149,7 +149,7 @@ def main(root):
 	testLabels = np.array(testLabels)
 
 	# predicted labels compared with the true labels to get the classification accuracy
-	predictedLabels = model.predict(testData)	
+	predictedLabels = model.predict(testData)
 
 	print "accuracy: " + str(float(np.sum(np.array(testLabels)==np.array(predictedLabels)))/predictedLabels.shape[0])
 
