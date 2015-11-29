@@ -24,7 +24,9 @@ histogram built using the above clustering
 and classified using a One-Vs-Rest Classifier
 
 ### Execution
-To run the code, run `Driver.py` which generates the One-Vs-Rest Classifier and dumps in a `model.p` file and along with the codebook centers for bag-of-visual-words in `centers.p`.
+To run the code, run `Driver.py` which generates the One-Vs-Rest Classifier and
+dumps in a `model.p` file and along with the codebook centers for bag-of-visual-words
+in `centers.p`.
 
 ### Evaluation
 The code has been evaluated on accuracy of predictions after the test and train
